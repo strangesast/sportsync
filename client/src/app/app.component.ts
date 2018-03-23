@@ -1,6 +1,7 @@
 import { AfterViewInit, ChangeDetectorRef, Component, ElementRef, ViewChild } from '@angular/core';
 import { Validators, FormBuilder, FormGroup } from '@angular/forms';
 import { fromEvent } from 'rxjs/observable/fromEvent';
+import { bindCallback } from 'rxjs/observable/bindCallback';
 import { combineLatest } from 'rxjs/observable/combineLatest';
 import { merge } from 'rxjs/observable/merge';
 import 'rxjs/add/operator/switchMap';
@@ -46,7 +47,7 @@ import { debounceTime, distinctUntilChanged, pluck, map, tap, throttleTime, shar
       [width]="width"
       [height]="height">
     </canvas>
-    <canvas #out [width]="width/10" [height]="height/10"></canvas>
+    <canvas #out class="hidden" [width]="width/10" [height]="height/10"></canvas>
   </div>
   `,
   styles: [
@@ -86,6 +87,10 @@ import { debounceTime, distinctUntilChanged, pluck, map, tap, throttleTime, shar
     left: 0;
   }
 
+  canvas.hidden {
+    display: none;
+  }
+
   canvas.pixelated {
     image-rendering: pixelated;
   }
@@ -109,6 +114,13 @@ export class AppComponent implements AfterViewInit {
   };
 
   fonts = Object.keys(this.fontSizes);
+
+  public socket: WebSocket = new WebSocket('ws://192.168.1.4:3000/socket');
+
+  open$ = fromEvent(this.socket, 'open');
+  message$ = fromEvent(this.socket, 'message');
+  close$ = fromEvent(this.socket, 'close');
+  error$ = fromEvent(this.socket, 'error');
 
   public form = this.fb.group({
     color: ['#FFFFFF'],
@@ -214,17 +226,20 @@ export class AppComponent implements AfterViewInit {
     ).switchMap(([value, size]) => {
       const image = new Image();
       image.src = this.canvas.nativeElement.toDataURL();
-      return fromEvent(image, 'load').map(() => {
+      return fromEvent(image, 'load').switchMap(() => {
         this.out.nativeElement.getContext('2d').drawImage(image, 0, 0, size.width, size.height);
-        const data = this.out.nativeElement.toDataURL();
-        return data;
+        const fn = (canvas, cb) => {
+          canvas.toBlob(cb);
+        };
+        return bindCallback(fn)(this.out.nativeElement);
       });
     }).subscribe(data => {
-      console.log('data', data);
+      this.socket.send(data);
     });
 
     merge(gridUpdates, contentUpdates).subscribe();
   }
 
-  constructor(private fb: FormBuilder, private ref: ChangeDetectorRef) {}
+  constructor(private fb: FormBuilder, private ref: ChangeDetectorRef) {
+  }
 }
