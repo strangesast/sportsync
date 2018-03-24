@@ -1,15 +1,30 @@
-import { AfterViewInit, ChangeDetectorRef, Component, ElementRef, ViewChild } from '@angular/core';
-import { Validators, FormBuilder, FormGroup } from '@angular/forms';
-import { fromEvent } from 'rxjs/observable/fromEvent';
-import { bindCallback } from 'rxjs/observable/bindCallback';
-import { combineLatest } from 'rxjs/observable/combineLatest';
-import { merge } from 'rxjs/observable/merge';
+import {
+  AfterViewInit,
+  ChangeDetectorRef,
+  Component,
+  ElementRef,
+  ViewChild
+} from '@angular/core';
+import { FormBuilder, Validators } from '@angular/forms';
+
 import 'rxjs/add/operator/switchMap';
 import 'rxjs/add/operator/map';
-import { debounceTime, distinctUntilChanged, pluck, map, tap, throttleTime, shareReplay, startWith, withLatestFrom } from 'rxjs/operators';
+import { bindCallback } from 'rxjs/observable/bindCallback';
+import { combineLatest } from 'rxjs/observable/combineLatest';
+import { fromEvent } from 'rxjs/observable/fromEvent';
+import { merge } from 'rxjs/observable/merge';
+import {
+  debounceTime,
+  distinctUntilChanged,
+  map,
+  shareReplay,
+  startWith,
+  tap,
+  withLatestFrom,
+} from 'rxjs/operators';
 
 @Component({
-  selector: 'app-root',
+  selector: 'app-template-1',
   template: `
   <div *ngFor="let font of fonts">
     <p class="{{ font }}">{{ font }}</p>
@@ -22,12 +37,18 @@ import { debounceTime, distinctUntilChanged, pluck, map, tap, throttleTime, shar
         {{ font }}
       </option>
     </select>
-    <label for="text-color">Color</label>
-    <input id="text-color" type="color" formControlName="color"/>
-    <label for="text">Text</label>
-    <input id="text" formControlName="text" type="text"/>
-    <label for="grid">Grid?</label>
-    <input formControlName="grid" type="checkbox"/>
+    <div>
+      <label for="text-color">Color</label>
+      <input id="text-color" type="color" formControlName="color"/>
+    </div>
+    <div>
+      <label for="text">Text</label>
+      <input id="text" formControlName="text" type="text"/>
+    </div>
+    <div>
+      <label for="grid">Grid?</label>
+      <input formControlName="grid" type="checkbox"/>
+    </div>
     <div>
       <label for="size.width">Width</label>
       <input type="number" formControlName="width"/>
@@ -36,52 +57,41 @@ import { debounceTime, distinctUntilChanged, pluck, map, tap, throttleTime, shar
     </div>
   </form>
   <div class="canvas-container">
+    <canvas #out class="hidden" [width]="width/10" [height]="height/10"></canvas>
     <canvas
       #canvas
       class="pixelated"
       [width]="width"
       [height]="height">
     </canvas>
+    <!--
     <canvas
       #filter
       [width]="width"
       [height]="height">
     </canvas>
-    <canvas #out class="hidden" [width]="width/10" [height]="height/10"></canvas>
+    -->
+    <svg [attr.width]="width" [attr.height]="height" *ngIf="grid$ | async">
+      <defs>
+        <mask maskUnits="userSpaceOnUse" id="fade">
+          <rect fill="white" width="100%" height="100%"/>
+          <circle fill="black" r="4" cx="4" cy="5"/>
+        </mask>
+      </defs>
+      <pattern id="circles" x="0" y="0" width="10" height="10" patternUnits="userSpaceOnUse">
+        <rect mask="url(#fade)" width="10" height="10"/>
+      </pattern>
+      <rect x="0" y="0" width="100%" height="100%" fill="url(#circles)"/>
+    </svg>
   </div>
   `,
   styles: [
   `
-  .font9x18 {
-    font-family: font9x18;
-  }
-  .font6x12 {
-    font-family: font6x12;
-  }
-  .font10x20 {
-    font-family: font10x20;
-  }
-  .font5x7 {
-    font-family: font5x7;
-  }
-  .font6x13O {
-    font-family: font6x13O;
-  }
-  .font4x6 {
-    font-family: font4x6;
-  }
-  .font5x8 {
-    font-family: font5x8;
-  }
-  .font6x10 {
-    font-family: font6x10;
-  }
-
-  .canvas-container {
+ .canvas-container {
     position: relative;
   }
 
-  canvas {
+  canvas, svg {
     position: absolute;
     top: 0;
     left: 0;
@@ -97,20 +107,20 @@ import { debounceTime, distinctUntilChanged, pluck, map, tap, throttleTime, shar
   `
   ]
 })
-export class AppComponent implements AfterViewInit {
+export class Template1Component implements AfterViewInit {
   @ViewChild('canvas', { read: ElementRef }) canvas: ElementRef;
-  @ViewChild('filter', { read: ElementRef }) filter: ElementRef;
+  // @ViewChild('filter', { read: ElementRef }) filter: ElementRef;
   @ViewChild('out', { read: ElementRef }) out: ElementRef;
 
   fontSizes = {
     'font9x18':  { width: 9,  base: 18, adj: 0,    x: -1.0, y: -3.6 },
     'font6x12':  { width: 6,  base: 12, adj: 0,    x:  0.0, y: -3.4 },
     'font10x20': { width: 10, base: 20, adj: 0,    x: -1.0, y: -3.0 },
-    'font5x7':   { width: 5,  base: 7,  adj: 0.45, x: -1.1, y:  0.2 },
+    // 'font5x7':   { width: 5,  base: 7,  adj: 0.45, x: -1.1, y:  0.2 },
     'font6x13O': { width: 6,  base: 13, adj: 0,    x: -1.0, y: -1.6 },
     'font4x6':   { width: 4,  base: 6,  adj: 0,    x:  0.0, y: -0.2 },
-    'font5x8':   { width: 5,  base: 8,  adj: 0.80, x: -1.0, y: -1.0 },
-    'font6x10':  { width: 6,  base: 10, adj: 2.60, x:  0.2, y: -1.1 }
+    // 'font5x8':   { width: 5,  base: 8,  adj: 0.80, x: -1.0, y: -1.0 },
+    // 'font6x10':  { width: 6,  base: 10, adj: 2.60, x:  0.2, y: -1.1 }
   };
 
   fonts = Object.keys(this.fontSizes);
@@ -155,6 +165,13 @@ export class AppComponent implements AfterViewInit {
     shareReplay(1)
   );
 
+  grid$ = this.form.get('grid')
+    .valueChanges
+    .pipe(
+      startWith(this.form.get('grid').value),
+      shareReplay(1),
+    );
+
   private ctx: CanvasRenderingContext2D;
 
   ngAfterViewInit() {
@@ -162,18 +179,12 @@ export class AppComponent implements AfterViewInit {
 
     const color$ = this.form.get('color').valueChanges.pipe(
       startWith(this.form.get('color').value),
-      debounceTime(100),
+      debounceTime(50),
       shareReplay(1),
     );
 
-    const grid$ = this.form.get('grid')
-      .valueChanges
-      .pipe(
-        startWith(this.form.get('grid').value),
-        shareReplay(1),
-      );
-
-    const gridUpdates = this.size$.switchMap(size => grid$.map(grid => {
+    const gridUpdates = this.size$.switchMap(size => this.grid$.map(grid => {
+      /*
       const ctx = this.filter.nativeElement.getContext('2d');
       ctx.clearRect(0, 0, size.width * 10, size.height * 10);
       if (grid) {
@@ -190,6 +201,7 @@ export class AppComponent implements AfterViewInit {
           ctx.stroke();
         }
       }
+      */
     }));
 
     const font$ = this.form.get('font')
@@ -206,23 +218,42 @@ export class AppComponent implements AfterViewInit {
         shareReplay(1),
       );
 
-    const contentUpdates = this.size$.switchMap(size => font$.switchMap(font => {
-      this.ctx.textAlign = 'start';
-      this.ctx.textBaseline = 'top';
-      const fontSize = this.fontSizes[font];
-      this.ctx.font = `${ fontSize.base + fontSize.adj }px ${ font}`;
-      return combineLatest(color$, text$).map(([color, text]) => {
-        this.ctx.clearRect(0, 0, size.width, size.height);
-        this.ctx.fillStyle = 'black';
-        this.ctx.fillRect(0, 0, size.width, size.height);
-        this.ctx.fillStyle = color;
-        this.ctx.fillText(text, fontSize.x, fontSize.y);
+    const contentUpdates = this.size$.switchMap(size => {
+      /*
+      const grd = this.ctx.createLinearGradient(0, 0, size.width, 0);
+      const red = d3.color('red');
+      red.opacity = 0.2;
+      const blue = d3.color('blue');
+      blue.opacity = 0.5;
+      grd.addColorStop(0, red);
+      grd.addColorStop(0.5, blue);
+      grd.addColorStop(1, red);
+      */
+      return font$.switchMap(font => {
+        this.ctx.textAlign = 'start';
+        this.ctx.textBaseline = 'top';
+        const fontSize = this.fontSizes[font];
+        this.ctx.font = `${ fontSize.base + fontSize.adj }px ${ font}`;
+        return combineLatest(color$, text$).map(([color, text]) => {
+          // this.ctx.clearRect(0, 0, size.width, size.height);
+
+          this.ctx.fillStyle = 'black';
+          this.ctx.fillRect(0, 0, size.width, size.height);
+
+          /*
+          this.ctx.fillStyle = grd;
+          this.ctx.fillRect(0, 0, size.width, size.height);
+          */
+
+          this.ctx.fillStyle = color;
+          this.ctx.fillText(text, fontSize.x, fontSize.y);
+        });
       });
-    }));
+    });
 
     this.form.valueChanges.pipe(
       withLatestFrom(this.size$),
-      debounceTime(1000)
+      debounceTime(100)
     ).switchMap(([value, size]) => {
       const image = new Image();
       image.src = this.canvas.nativeElement.toDataURL();
@@ -233,13 +264,12 @@ export class AppComponent implements AfterViewInit {
         };
         return bindCallback(fn)(this.out.nativeElement);
       });
-    }).subscribe(data => {
+    }).pipe(distinctUntilChanged()).subscribe(data => {
       this.socket.send(data);
     });
 
     merge(gridUpdates, contentUpdates).subscribe();
   }
 
-  constructor(private fb: FormBuilder, private ref: ChangeDetectorRef) {
-  }
+  constructor(private fb: FormBuilder, private ref: ChangeDetectorRef) {}
 }
