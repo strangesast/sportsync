@@ -6,6 +6,7 @@ import {
   ViewChild
 } from '@angular/core';
 import { FormBuilder, Validators } from '@angular/forms';
+import * as d3 from 'd3';
 
 import 'rxjs/add/operator/switchMap';
 import 'rxjs/add/operator/map';
@@ -219,16 +220,16 @@ export class Template1Component implements AfterViewInit {
       );
 
     const contentUpdates = this.size$.switchMap(size => {
-      /*
       const grd = this.ctx.createLinearGradient(0, 0, size.width, 0);
-      const red = d3.color('red');
-      red.opacity = 0.2;
+      let red = d3.color('red');
+      red = d3.hsl(0, 100, 50);
+      red.opacity = 0.8;
       const blue = d3.color('blue');
-      blue.opacity = 0.5;
-      grd.addColorStop(0, red);
-      grd.addColorStop(0.5, blue);
-      grd.addColorStop(1, red);
-      */
+
+      blue.opacity = 0.2;
+      grd.addColorStop(0, red as any);
+      grd.addColorStop(0.5, blue as any);
+      grd.addColorStop(1, red as any);
       return font$.switchMap(font => {
         this.ctx.textAlign = 'start';
         this.ctx.textBaseline = 'top';
@@ -240,10 +241,8 @@ export class Template1Component implements AfterViewInit {
           this.ctx.fillStyle = 'black';
           this.ctx.fillRect(0, 0, size.width, size.height);
 
-          /*
           this.ctx.fillStyle = grd;
           this.ctx.fillRect(0, 0, size.width, size.height);
-          */
 
           this.ctx.fillStyle = color;
           this.ctx.fillText(text, fontSize.x, fontSize.y);
