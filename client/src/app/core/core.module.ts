@@ -9,8 +9,9 @@ import { AppComponent } from './containers/app.component';
 
 import { TemplatePageComponent } from './containers/template-page.component';
 
-import { Template1Component } from './components/template-1.component';
-import { Template2Component } from './components/template-2.component';
+import { TemplateViewerCanvasComponent } from './components/template-viewer-canvas.component';
+import { TemplateViewerSVGComponent } from './components/template-viewer-svg.component';
+import { TemplateFormComponent } from './components/template-form.component';
 
 import { routes } from './routes';
 
@@ -24,9 +25,10 @@ import { routes } from './routes';
   ],
   declarations: [
     AppComponent,
-    Template1Component,
-    Template2Component,
     TemplatePageComponent,
+    TemplateFormComponent,
+    TemplateViewerSVGComponent,
+    TemplateViewerCanvasComponent,
   ],
   providers: [],
   bootstrap: [AppComponent]

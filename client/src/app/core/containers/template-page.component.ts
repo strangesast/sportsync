@@ -6,7 +6,7 @@ import { Component } from '@angular/core';
   <mat-toolbar>
     <span>Template Page</span>
   </mat-toolbar>
-  <router-outlet></router-outlet>
+  <app-template-form></app-template-form>
   `,
   styles: []
 })
