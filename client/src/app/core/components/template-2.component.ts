@@ -75,7 +75,7 @@ enum GridTypes {
   <button mat-raised-button type="button" (click)="resetTransform()">Reset Transform</button>
   <svg #svgElement xmlns="http://www.w3.org/2000/svg"
     *ngIf="{ width: width$ | async, height: height$ | async } as size"
-    [attr.viewBox]="[0, 0, size.width, size.height].join(' ')">
+    [attr.viewBox]="[0, 0, size.width || 0, size.height || 0].join(' ')">
     <defs>
       <!-- grid -->
       <pattern id="smallGrid" width="1" height="1" patternUnits="userSpaceOnUse">
