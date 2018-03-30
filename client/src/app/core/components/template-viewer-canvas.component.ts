@@ -12,6 +12,7 @@ import {
 import { FormArray, FormBuilder, FormControl, Validators } from '@angular/forms';
 import * as d3 from 'd3';
 
+import { ReplaySubject } from 'rxjs/ReplaySubject';
 import { Subject } from 'rxjs/Subject';
 import { Observable } from 'rxjs/Observable';
 
@@ -61,13 +62,13 @@ import {
 })
 export class TemplateViewerCanvasComponent implements AfterViewInit, OnChanges, OnDestroy {
 
-  elements$ = new Subject<FormArray>();
+  elements$ = new ReplaySubject<FormArray>(1);
   destroyed$ = new Subject();
 
   elementsUpdatesSub = this.elements$.pipe(
-    switchMap((elements: FormArray) => elements.valueChanges),
+    switchMap((elements: FormArray) => elements.valueChanges.pipe(startWith(elements.value))),
     debounceTime(50),
-    tap(() => this.draw({})),
+    tap(elements => console.log('elements', elements) || this.draw({})),
     takeUntil(this.destroyed$),
   ).subscribe();
 
@@ -101,14 +102,13 @@ export class TemplateViewerCanvasComponent implements AfterViewInit, OnChanges, 
   constructor(private fb: FormBuilder, private ref: ChangeDetectorRef) {}
 
   ngOnChanges(changes: SimpleChanges) {
+    if (changes && changes.elements) {
+      this.elements$.next(changes.elements.currentValue);
+    }
     this.draw(changes);
   }
 
   draw(changes?: SimpleChanges) {
-    if (changes && changes.elements) {
-      this.elements$.next(changes.elements.currentValue);
-    }
-
     const ctx = this.ctx;
     if (!ctx) {
       return;
@@ -127,20 +127,20 @@ export class TemplateViewerCanvasComponent implements AfterViewInit, OnChanges, 
     ctx.fillStyle = this.background || '#FFFFFF';
     ctx.fillRect(0, 0, width, height);
 
-    for (const control of this.elements.controls) {
+    for (const element of this.elements.value) {
       ctx.textAlign = 'start';
       ctx.textBaseline = 'top';
-      const font = control.get('font').value;
+      const font = element.font;
       const fontSize = this.fontSizes[font];
       ctx.font = `${ fontSize.base + fontSize.adj }px ${ font }`;
 
       ctx.fillStyle = 'black';
       ctx.fillRect(0, 0, width, height);
 
-      const color = control.get('color').value;
+      const color = element.color;
       ctx.fillStyle = color;
-      const text = control.get('text').value;
-      ctx.fillText(text, (control.get('x').value || 0) + fontSize.x, (control.get('y').value || 0) + fontSize.y);
+      const text = element.text;
+      ctx.fillText(text, (element.x || 0) + fontSize.x, (element.y || 0) + fontSize.y);
     }
   }
 
