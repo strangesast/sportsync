@@ -12,7 +12,6 @@ import {
 import { FormArray, FormBuilder, FormControl, Validators } from '@angular/forms';
 import * as d3 from 'd3';
 
-
 import { Subject } from 'rxjs/Subject';
 import { Observable } from 'rxjs/Observable';
 
@@ -48,6 +47,9 @@ import {
   `,
   styles: [
   `
+  :host {
+    display: block;
+  }
   canvas.hidden {
     display: none;
   }
@@ -64,7 +66,7 @@ export class TemplateViewerCanvasComponent implements AfterViewInit, OnChanges, 
 
   elementsUpdatesSub = this.elements$.pipe(
     switchMap((elements: FormArray) => elements.valueChanges),
-    debounceTime(100),
+    debounceTime(50),
     tap(() => this.draw({})),
     takeUntil(this.destroyed$),
   ).subscribe();
@@ -116,7 +118,7 @@ export class TemplateViewerCanvasComponent implements AfterViewInit, OnChanges, 
     if (!changes || changes.size) {
       const scale = 10;
       this.canvas.nativeElement.setAttribute('width', width * scale);
-      this.canvas.nativeElement.setAttribute('height', width * scale);
+      this.canvas.nativeElement.setAttribute('height', height * scale);
     }
 
     ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -138,7 +140,7 @@ export class TemplateViewerCanvasComponent implements AfterViewInit, OnChanges, 
       const color = control.get('color').value;
       ctx.fillStyle = color;
       const text = control.get('text').value;
-      ctx.fillText(text, fontSize.x, fontSize.y);
+      ctx.fillText(text, (control.get('x').value || 0) + fontSize.x, (control.get('y').value || 0) + fontSize.y);
     }
   }
 

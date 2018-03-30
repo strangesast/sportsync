@@ -62,7 +62,7 @@ import { GridTypes, GridTypeValues, FontSizes } from '../models';
         [attr.fill]="background"
         mask="url(#circles-mask)"/>
       <rect
-        *ngIf="gridType.value == gridTypes.Grid"
+        *ngIf="gridType == gridTypes.Grid"
         class="noselect"
         [attr.width]="size.width"
         [attr.height]="size.height"
@@ -73,6 +73,9 @@ import { GridTypes, GridTypeValues, FontSizes } from '../models';
     `,
   styles: [
     `
+    :host {
+      display: block;
+    }
     .noselect {
       user-select: none;
       pointer-events: none;
@@ -152,16 +155,24 @@ export class TemplateViewerSVGComponent implements AfterViewInit {
     this.svgSelection.call(this.zoom);
 
     this.els.changes.pipe(
+      // get list of dom elements
       map(ql => ql.toArray()),
       startWith(this.els.toArray()),
       map(arr => arr.map((er: ElementRef) => er.nativeElement)),
       startWith([]),
       pairwise(),
+      // get new elements
       map(([a, b]) => b.filter(el => a.indexOf(el) === -1)),
       flatMap(arr => from(arr)),
     ).subscribe(el => {
-      const s = d3.select(el);
-      s.call(drag);
+      d3.select(el)
+        .call(drag)
+        .on('mouseenter', function() {
+          console.log('enter');
+        })
+        .on('mouseleave', function() {
+          console.log('leave');
+        });
     });
   }
 }

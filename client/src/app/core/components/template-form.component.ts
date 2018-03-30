@@ -1,23 +1,19 @@
-import { Component } from '@angular/core';
+import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { FormArray, FormBuilder, FormControl, Validators } from '@angular/forms';
 
 import * as uuid from 'uuid/v4';
+import { Subject } from 'rxjs/Subject';
+import { Observable } from 'rxjs/Observable';
+import { WebSocketSubject } from 'rxjs/observable/dom/WebSocketSubject';
+import { debounceTime, switchMap, takeUntil, tap } from 'rxjs/operators';
 
-import { GridTypes, GridTypeValues } from '../models';
+import { TemplateViewerCanvasComponent } from './template-viewer-canvas.component';
+import { FontSizes, GridTypes, GridTypeValues } from '../models';
 
 @Component({
   selector: 'app-template-form',
   template: `
   <form [formGroup]="form" (ngSubmit)="onSubmit()">
-    <label>Board Size</label>
-    <div formGroupName="size">
-      <mat-form-field>
-        <input matInput type="number" placeholder="Width" formControlName="width" min="0">
-      </mat-form-field>
-      <mat-form-field>
-        <input matInput type="number" placeholder="Height" formControlName="height" min="0">
-      </mat-form-field>
-    </div>
     <div>
       <mat-radio-group formControlName="gridType">
         <mat-radio-button *ngFor="let type of gridTypeValues" [value]="gridTypes[type]">{{ type }}</mat-radio-button>
@@ -29,39 +25,50 @@ import { GridTypes, GridTypeValues } from '../models';
         <mat-radio-button value="#FFFFFF">Light</mat-radio-button>
       </mat-radio-group>
     </div>
-    <div formArrayName="elements">
-      <div *ngFor="let element of elements.controls; let i=index; trackBy: element?.value._id" [formGroupName]="i">
-        <div>
-          <label>Element {{ i + 1 }}</label>
-          <mat-form-field>
-            <input matInput type="text" placeholder="text" formControlName="text">
-          </mat-form-field>
-        </div>
-        <div>
-          <label>Color</label>
-          <input formControlName="color" type="color">
-          <mat-form-field>
-            <mat-select placeholder="Font" formControlName="font">
-              <mat-option *ngFor="let font of fonts" [attr.font-family]="font" [value]="font">
-                {{ font }}
-              </mat-option>
-            </mat-select>
-          </mat-form-field>
-        </div>
-        <div>
-          <mat-form-field>
-            <input matInput type="number" placeholder="x" step="1" formControlName="x">
-          </mat-form-field>
-          <mat-form-field>
-            <input matInput type="number" placeholder="y" step="1" formControlName="y">
-          </mat-form-field>
-        </div>
-        <div>
-          <button type="button" mat-button (click)="removeElement(i)">Remove</button>
+    <div formGroupName="template">
+      <div formGroupName="size">
+        <label>Board Size</label>
+        <mat-form-field>
+          <input matInput type="number" placeholder="Width" formControlName="width" min="0">
+        </mat-form-field>
+        <mat-form-field>
+          <input matInput type="number" placeholder="Height" formControlName="height" min="0">
+        </mat-form-field>
+      </div>
+      <div formArrayName="elements">
+        <div *ngFor="let element of elements.controls; let i=index; trackBy: element?.value._id" [formGroupName]="i">
+          <div>
+            <label>Element {{ i + 1 }}</label>
+            <mat-form-field>
+              <input matInput type="text" placeholder="text" formControlName="text">
+            </mat-form-field>
+          </div>
+          <div>
+            <label>Color</label>
+            <input formControlName="color" type="color">
+            <mat-form-field>
+              <mat-select placeholder="Font" formControlName="font">
+                <mat-option *ngFor="let font of fonts" [attr.font-family]="font" [value]="font">
+                  {{ font }}
+                </mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
+          <div>
+            <mat-form-field>
+              <input matInput type="number" placeholder="x" step="1" formControlName="x">
+            </mat-form-field>
+            <mat-form-field>
+              <input matInput type="number" placeholder="y" step="1" formControlName="y">
+            </mat-form-field>
+          </div>
+          <div>
+            <button type="button" mat-button (click)="removeElement(i)">Remove</button>
+          </div>
         </div>
       </div>
+      <button type="button" mat-raised-button (click)="addElement()">Add Element</button>
     </div>
-    <button type="button" mat-raised-button (click)="addElement()">Add Element</button>
     <button type="button" mat-raised-button (click)="handleImage(canvas.getImage())">Save Image</button>
   </form>
   <app-template-viewer-svg
@@ -71,14 +78,14 @@ import { GridTypes, GridTypeValues } from '../models';
     [background]="background.value">
   </app-template-viewer-svg>
   <app-template-viewer-canvas
-    #canvas
     [size]="size.value"
     [elements]="elements">
   </app-template-viewer-canvas>
+  <pre>{{ socket$ | async }}</pre>
   `,
   styles: [
     `
-    host {
+    :host {
       font-family: Roboto, "Helvetica Neue", sans-serif;
     }
     mat-radio-button {
@@ -87,39 +94,42 @@ import { GridTypes, GridTypeValues } from '../models';
     `
   ],
 })
-export class TemplateFormComponent {
+export class TemplateFormComponent implements OnDestroy, OnInit {
+  destroyed$ = new Subject();
+
+  @ViewChild(TemplateViewerCanvasComponent) canvasViewer: TemplateViewerCanvasComponent;
 
   gridTypes = GridTypes;
   gridTypeValues = GridTypeValues;
 
-  fontSizes = {
-    'font9x18': { size: 18, adj: `translate(${ 0.01 - 1 },${ 0.21 - 1 })` },
-    'font6x12': { size: 12, adj: `translate(${ 0 },${ -1.35 })` },
-    'font10x20': { size: 20, adj: `translate(${ -1 },${ 0.2 })` },
-    'font6x13O': { size: 13, adj: `translate(${ 0 },${ 0.4 }) scale(1.0015)` },
-    'font4x6': { size: 6, adj: `translate(${ 0 },${ 0.8 }) scale(1.001)` },
-    'font5x7': { size: 7, adj: `translate(${ 0 },${ 0.8 }) scale(1.0005)` },
-    'font5x8': { size: 8, adj: `translate(${ 0 },${ 0.60 })` },
-    'font6x10': { size: 10, adj: `translate(${ 0 },${ 0.6 })` },
-  };
-  fonts = Object.keys(this.fontSizes);
+  fonts = Object.keys(FontSizes);
 
   form = this.fb.group({
-    size: this.fb.group({
-      width: [128, Validators.required],
-      height: [32, Validators.required],
+    template: this.fb.group({
+      size: this.fb.group({
+        width: [128, Validators.required],
+        height: [32, Validators.required],
+      }),
+      elements: this.fb.array([]),
     }),
-    gridType: [GridTypes.Grid],
+    gridType: [GridTypes.None],
     background: ['#000000'],
-    elements: this.fb.array([]),
   });
+
+  socket$ = new WebSocketSubject(`ws://192.168.1.4:3000/socket`);
+
+  messages$ = this.socket$;
+
+  get template() {
+    return this.form.get('template');
+  }
 
   get gridType() {
     return this.form.get('gridType') as FormControl;
   }
 
   get elements() {
-    return this.form.get('elements') as FormArray;
+    return this.template.get('elements') as FormArray;
   }
 
   get background() {
@@ -127,7 +137,7 @@ export class TemplateFormComponent {
   }
 
   get size() {
-    return this.form.get('size');
+    return this.template.get('size');
   }
 
   constructor(private fb: FormBuilder) {
@@ -151,5 +161,24 @@ export class TemplateFormComponent {
 
   handleImage(obs) {
     obs.subscribe(console.log.bind(console));
+  }
+
+  ngOnInit() {
+    this.form.valueChanges.pipe(
+      debounceTime(100),
+      switchMap(() =>
+        this.canvasViewer.getImage().pipe(
+          tap(data => {
+            this.socket$.next(data);
+          }),
+        ),
+      ),
+      takeUntil(this.destroyed$),
+    ).subscribe();
+  }
+
+  ngOnDestroy() {
+    this.destroyed$.next();
+    this.destroyed$.complete();
   }
 }
