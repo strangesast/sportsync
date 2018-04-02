@@ -122,35 +122,57 @@ export class TemplateViewerSVGComponent implements AfterViewInit {
     const pt = (this.svgSelection.node() as any).createSVGPoint();
 
     let pos = [0, 0];
-    function dragstarted(d) {
-      d3.select(this).classed('active', true);
+
+    let dragging = false;
+
+    function addBounds(sel) {
+      const { width, height } = (sel.node() as any).getBBox();
+
+      sel.selectAll('rect')
+        .data([null])
+        .enter()
+        .append('rect')
+        .attr('width', width)
+        .attr('height', height)
+        .attr('fill', 'rgba(0, 0, 0, 0.1)')
+        .attr('stroke', 'blue');
     }
 
-    function dragged(d) {
-      let [x, y] = [d3.event.x, d3.event.y];
-      if (x < 0) {
-        x = 0;
-      }
-      if (y < 0) {
-        y = 0;
-      }
-      pos = [x, y];
-      d3.select(this).attr('transform', `translate(${x},${y})`);
-    }
-
-    function dragended(d) {
-      pos = pos.map(v => Math.round(v));
-      const [x, y] = pos;
-      const control = elements.controls.find(_control => _control.get('_id').value === this.id);
-      control.patchValue({ x, y });
-      d3.select(this).classed('active', false);
+    function removeBounds(sel) {
+      sel.selectAll('rect').remove();
     }
 
     function zoomed() {
       svg.attr('transform', d3.event.transform);
     }
 
-    const drag = d3.drag().on('start', dragstarted).on('drag', dragged).on('end', dragended);
+    const drag = d3.drag()
+      .on('start', function() {
+        dragging = true;
+
+        d3.select(this).call(addBounds);
+
+      })
+      .on('drag', function() {
+        let [x, y] = [d3.event.x, d3.event.y];
+        if (x < 0) {
+          x = 0;
+        }
+        if (y < 0) {
+          y = 0;
+        }
+        pos = [x, y];
+        d3.select(this).attr('transform', `translate(${x},${y})`);
+      })
+      .on('end', function() {
+        dragging = false;
+        pos = pos.map(v => Math.round(v));
+        const [x, y] = pos;
+        const control = elements.controls.find(_control => _control.get('_id').value === this.id);
+        control.patchValue({ x, y });
+        d3.select(this).call(removeBounds);
+      });
+
     this.zoom = d3.zoom().on('zoom', zoomed);
     this.svgSelection.call(this.zoom);
 
@@ -168,10 +190,14 @@ export class TemplateViewerSVGComponent implements AfterViewInit {
       d3.select(el)
         .call(drag)
         .on('mouseenter', function() {
-          console.log('enter');
+          if (!dragging) {
+            d3.select(this).call(addBounds);
+          }
         })
         .on('mouseleave', function() {
-          console.log('leave');
+          if (!dragging) {
+            d3.select(this).call(removeBounds);
+          }
         });
     });
   }

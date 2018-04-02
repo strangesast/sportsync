@@ -68,7 +68,7 @@ export class TemplateViewerCanvasComponent implements AfterViewInit, OnChanges, 
   elementsUpdatesSub = this.elements$.pipe(
     switchMap((elements: FormArray) => elements.valueChanges.pipe(startWith(elements.value))),
     debounceTime(50),
-    tap(elements => console.log('elements', elements) || this.draw({})),
+    tap(() => this.draw({})),
     takeUntil(this.destroyed$),
   ).subscribe();
 
@@ -87,7 +87,7 @@ export class TemplateViewerCanvasComponent implements AfterViewInit, OnChanges, 
   };
   fonts = Object.keys(this.fontSizes);
 
-  @Input() background = '#FFFFFF';
+  @Input() background = '#000000';
   @Input() elements: FormArray;
 
   @Input() size = { width: 0, height: 0 };
@@ -117,30 +117,23 @@ export class TemplateViewerCanvasComponent implements AfterViewInit, OnChanges, 
 
     if (!changes || changes.size) {
       const scale = 10;
-      this.canvas.nativeElement.setAttribute('width', width * scale);
-      this.canvas.nativeElement.setAttribute('height', height * scale);
+      this.canvas.nativeElement.width = width * scale;
+      this.canvas.nativeElement.height = height * scale;
     }
 
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.scale(10, 10);
-    ctx.clearRect(0, 0, width, height);
     ctx.fillStyle = this.background || '#FFFFFF';
     ctx.fillRect(0, 0, width, height);
 
     for (const element of this.elements.value) {
+      const fontSize = this.fontSizes[element.font];
+
       ctx.textAlign = 'start';
       ctx.textBaseline = 'top';
-      const font = element.font;
-      const fontSize = this.fontSizes[font];
-      ctx.font = `${ fontSize.base + fontSize.adj }px ${ font }`;
-
-      ctx.fillStyle = 'black';
-      ctx.fillRect(0, 0, width, height);
-
-      const color = element.color;
-      ctx.fillStyle = color;
-      const text = element.text;
-      ctx.fillText(text, (element.x || 0) + fontSize.x, (element.y || 0) + fontSize.y);
+      ctx.font = `${ fontSize.base + fontSize.adj }px ${ element.font }`;
+      ctx.fillStyle = element.color;
+      ctx.fillText(element.text, (element.x || 0) + fontSize.x, (element.y || 0) + fontSize.y);
     }
   }
 

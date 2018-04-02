@@ -13,6 +13,22 @@ import { FontSizes, GridTypes, GridTypeValues } from '../models';
 @Component({
   selector: 'app-template-form',
   template: `
+  <mat-tab-group>
+    <mat-tab label="svg">
+      <app-template-viewer-svg
+        [size]="size.value"
+        [gridType]="gridType.value"
+        [elements]="elements"
+        [background]="background.value">
+      </app-template-viewer-svg>
+    </mat-tab>
+    <mat-tab label="canvas">
+      <app-template-viewer-canvas
+        [size]="size.value"
+        [elements]="elements">
+      </app-template-viewer-canvas>
+    </mat-tab>
+  </mat-tab-group>
   <form [formGroup]="form" (ngSubmit)="onSubmit()">
     <div>
       <mat-radio-group formControlName="gridType">
@@ -35,15 +51,15 @@ import { FontSizes, GridTypes, GridTypeValues } from '../models';
           <input matInput type="number" placeholder="Height" formControlName="height" min="0">
         </mat-form-field>
       </div>
-      <div formArrayName="elements">
-        <div *ngFor="let element of elements.controls; let i=index; trackBy: element?.value._id" [formGroupName]="i">
-          <div>
+      <mat-accordion formArrayName="elements">
+        <mat-expansion-panel *ngFor="let element of elements.controls; let i=index; trackBy: element?.value._id" [formGroupName]="i">
+          <mat-expansion-panel-header>
             <label>Element {{ i + 1 }}</label>
-            <mat-form-field>
-              <input matInput type="text" placeholder="text" formControlName="text">
-            </mat-form-field>
-          </div>
+          </mat-expansion-panel-header>
           <div>
+            <mat-form-field>
+              <input matInput type="text" placeholder="Text" formControlName="text">
+            </mat-form-field>
             <label>Color</label>
             <input formControlName="color" type="color">
             <mat-form-field>
@@ -62,26 +78,16 @@ import { FontSizes, GridTypes, GridTypeValues } from '../models';
               <input matInput type="number" placeholder="y" step="1" formControlName="y">
             </mat-form-field>
           </div>
-          <div>
+          <mat-action-row>
             <button type="button" mat-button (click)="removeElement(i)">Remove</button>
-          </div>
-        </div>
+          </mat-action-row>
+        </mat-expansion-panel>
+      </mat-accordion>
+      <div class="buttons">
+        <button type="button" mat-raised-button (click)="addElement()">Add Element</button>
       </div>
-      <button type="button" mat-raised-button (click)="addElement()">Add Element</button>
     </div>
-    <button type="button" mat-raised-button (click)="handleImage(canvas.getImage())">Save Image</button>
   </form>
-  <app-template-viewer-svg
-    [size]="size.value"
-    [gridType]="gridType.value"
-    [elements]="elements"
-    [background]="background.value">
-  </app-template-viewer-svg>
-  <app-template-viewer-canvas
-    [size]="size.value"
-    [elements]="elements">
-  </app-template-viewer-canvas>
-  <pre>{{ socket$ | async }}</pre>
   `,
   styles: [
     `
@@ -90,6 +96,9 @@ import { FontSizes, GridTypes, GridTypeValues } from '../models';
     }
     mat-radio-button {
       margin: 4px;
+    }
+    .buttons {
+      margin: 10px 0;
     }
     `
   ],
