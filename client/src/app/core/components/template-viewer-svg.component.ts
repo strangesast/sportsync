@@ -69,7 +69,9 @@ import { GridTypes, GridTypeValues, FontSizes } from '../models';
         fill="url(#grid)"/>
     </g>
   </svg>
-  <button mat-raised-button type="button" (click)="resetTransform()">Reset Transform</button>
+  <div class="buttons">
+    <button mat-raised-button type="button" (click)="resetTransform()">Reset Transform</button>
+  </div>
     `,
   styles: [
     `
@@ -82,6 +84,9 @@ import { GridTypes, GridTypeValues, FontSizes } from '../models';
     }
     svg g text {
       cursor: pointer;
+    }
+    .buttons {
+      margin: 16px 0;
     }
     `
   ],

@@ -30,27 +30,41 @@ import { FontSizes, GridTypes, GridTypeValues } from '../models';
     </mat-tab>
   </mat-tab-group>
   <form [formGroup]="form" (ngSubmit)="onSubmit()">
-    <div>
-      <mat-radio-group formControlName="gridType">
-        <mat-radio-button *ngFor="let type of gridTypeValues" [value]="gridTypes[type]">{{ type }}</mat-radio-button>
-      </mat-radio-group>
-    </div>
-    <div>
-      <mat-radio-group formControlName="background">
-        <mat-radio-button value="#000000">Dark</mat-radio-button>
-        <mat-radio-button value="#FFFFFF">Light</mat-radio-button>
-      </mat-radio-group>
-    </div>
+    <mat-accordion>
+      <mat-expansion-panel>
+        <mat-expansion-panel-header>
+          Display Settings
+        </mat-expansion-panel-header>
+        <div>
+          <mat-radio-group formControlName="gridType">
+            <mat-radio-button *ngFor="let type of gridTypeValues" [value]="gridTypes[type]">{{ type }}</mat-radio-button>
+          </mat-radio-group>
+        </div>
+        <div>
+          <mat-radio-group formControlName="background">
+            <mat-radio-button value="#000000">Dark</mat-radio-button>
+            <mat-radio-button value="#FFFFFF">Light</mat-radio-button>
+          </mat-radio-group>
+        </div>
+      </mat-expansion-panel>
+    </mat-accordion>
     <div formGroupName="template">
-      <div formGroupName="size">
-        <label>Board Size</label>
-        <mat-form-field>
-          <input matInput type="number" placeholder="Width" formControlName="width" min="0">
-        </mat-form-field>
-        <mat-form-field>
-          <input matInput type="number" placeholder="Height" formControlName="height" min="0">
-        </mat-form-field>
-      </div>
+      <mat-accordion>
+        <mat-expansion-panel formGroupName="size">
+          <mat-expansion-panel-header>
+            Board Size
+          </mat-expansion-panel-header>
+          <div>
+            <label>Board Size</label>
+            <mat-form-field>
+              <input matInput type="number" placeholder="Width" formControlName="width" min="0">
+            </mat-form-field>
+            <mat-form-field>
+              <input matInput type="number" placeholder="Height" formControlName="height" min="0">
+            </mat-form-field>
+          </div>
+        </mat-expansion-panel>
+      </mat-accordion>
       <mat-accordion formArrayName="elements">
         <mat-expansion-panel *ngFor="let element of elements.controls; let i=index; trackBy: element?.value._id" [formGroupName]="i">
           <mat-expansion-panel-header>
@@ -99,6 +113,10 @@ import { FontSizes, GridTypes, GridTypeValues } from '../models';
     }
     .buttons {
       margin: 10px 0;
+    }
+    mat-accordion {
+      display: block;
+      margin-bottom: 16px;
     }
     `
   ],
