@@ -40,8 +40,8 @@ import { GridTypes, GridTypeValues, FontSizes } from '../models';
       <rect [attr.width]="size.width" [attr.height]="size.height" [attr.fill]="background"/>
       <g
         #els
-        *ngFor="let element of elements.controls; trackBy: element?.value._id"
-        [attr.id]="element.value._id"
+        *ngFor="let element of elements.controls; trackBy: element?.value.id"
+        [attr.id]="element.value.id"
         [attr.transform]="'translate(' + (element.value.x || 0) + ',' + (element.value.y || 0) + ')'">
         <text
           [attr.transform]="fontSizes[element.value.font].adj"
@@ -173,7 +173,7 @@ export class TemplateViewerSVGComponent implements AfterViewInit {
         dragging = false;
         pos = pos.map(v => Math.round(v));
         const [x, y] = pos;
-        const control = elements.controls.find(_control => _control.get('_id').value === this.id);
+        const control = elements.controls.find(_control => _control.get('id').value === this.id);
         control.patchValue({ x, y });
         d3.select(this).call(removeBounds);
       });

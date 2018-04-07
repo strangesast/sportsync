@@ -1,12 +1,13 @@
-import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { Component, EventEmitter, OnDestroy, Output, OnChanges, OnInit, Input, SimpleChanges, ViewChild } from '@angular/core';
 import { FormArray, FormBuilder, FormControl, Validators } from '@angular/forms';
 
 import * as uuid from 'uuid/v4';
 import { Subject } from 'rxjs/Subject';
 import { Observable } from 'rxjs/Observable';
 import { WebSocketSubject } from 'rxjs/observable/dom/WebSocketSubject';
-import { debounceTime, switchMap, takeUntil, tap } from 'rxjs/operators';
+import { debounceTime, distinctUntilChanged, switchMap, takeUntil, tap } from 'rxjs/operators';
 
+import { BoardTemplate } from '../models/board-template.model';
 import { TemplateViewerCanvasComponent } from './template-viewer-canvas.component';
 import { FontSizes, GridTypes, GridTypeValues } from '../models';
 
@@ -66,7 +67,7 @@ import { FontSizes, GridTypes, GridTypeValues } from '../models';
         </mat-expansion-panel>
       </mat-accordion>
       <mat-accordion formArrayName="elements">
-        <mat-expansion-panel *ngFor="let element of elements.controls; let i=index; trackBy: element?.value._id" [formGroupName]="i">
+        <mat-expansion-panel *ngFor="let element of elements.controls; let i=index; trackBy: element?.value.id" [formGroupName]="i">
           <mat-expansion-panel-header>
             <label>Element {{ i + 1 }}</label>
           </mat-expansion-panel-header>
@@ -121,10 +122,15 @@ import { FontSizes, GridTypes, GridTypeValues } from '../models';
     `
   ],
 })
-export class TemplateFormComponent implements OnDestroy, OnInit {
+export class TemplateFormComponent implements OnChanges, OnDestroy, OnInit {
   destroyed$ = new Subject();
 
   @ViewChild(TemplateViewerCanvasComponent) canvasViewer: TemplateViewerCanvasComponent;
+
+  @Output() change = new EventEmitter<BoardTemplate>();
+
+  // tslint:disable-next-line:no-input-rename
+  @Input('template') templateValue: BoardTemplate;
 
   gridTypes = GridTypes;
   gridTypeValues = GridTypeValues;
@@ -133,10 +139,9 @@ export class TemplateFormComponent implements OnDestroy, OnInit {
 
   form = this.fb.group({
     template: this.fb.group({
-      size: this.fb.group({
-        width: [128, Validators.required],
-        height: [32, Validators.required],
-      }),
+      id: [''],
+      name: ['Template'],
+      size: this.fb.group({ width: [128, Validators.required], height: [32, Validators.required], }),
       elements: this.fb.array([]),
     }),
     gridType: [GridTypes.None],
@@ -171,9 +176,15 @@ export class TemplateFormComponent implements OnDestroy, OnInit {
     this.addElement();
   }
 
+  ngOnChanges(changes: SimpleChanges) {
+    if (changes.templateValue) {
+      this.template.patchValue(changes.templateValue.currentValue);
+    }
+  }
+
   addElement() {
     this.elements.push(this.fb.group({
-      _id: uuid(),
+      id: uuid(),
       x: [0],
       y: [0],
       text: ['New Element', Validators.required],
@@ -200,6 +211,13 @@ export class TemplateFormComponent implements OnDestroy, OnInit {
           }),
         ),
       ),
+      takeUntil(this.destroyed$),
+    ).subscribe();
+
+    this.template.valueChanges.pipe(
+      distinctUntilChanged(),
+      debounceTime(1000),
+      tap(template => this.change.emit(template)),
       takeUntil(this.destroyed$),
     ).subscribe();
   }
